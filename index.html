@@ -369,7 +369,7 @@
 
       <div class="field">
         <label for="objetivo">Objetivo financeiro (R$) </label>
-        <input type="number" id="objetivo" inputmode="decimal" placeholder="Ex: 1.700,00" min="0" step="0.01">
+        <input type="text" id="objetivo" inputmode="numeric" placeholder="Ex: 1.700,00">
       </div>
 
       <div class="field">
@@ -475,12 +475,26 @@
     return `${h}h ${min}min`;
   }
 
-  function diasNoMes(ano, mesIndex) {
+ function diasNoMes(ano, mesIndex) {
     return new Date(ano, mesIndex + 1, 0).getDate();
   }
 
+  function parseValorMonetario(str) {
+    const limpo = str.replace(/\./g, '').replace(',', '.');
+    return limpo === '' ? NaN : parseFloat(limpo);
+  }
+
+  function formatarCampoDinheiro() {
+    let digits = els.objetivo.value.replace(/\D/g, '');
+    if (digits === '') { els.objetivo.value = ''; return; }
+    while (digits.length < 3) digits = '0' + digits;
+    const centavos = digits.slice(-2);
+    const inteiro = parseInt(digits.slice(0, -2), 10).toLocaleString('pt-BR');
+    els.objetivo.value = `${inteiro},${centavos}`;
+  }
+
   function calcular() {
-    const objetivo = parseFloat(els.objetivo.value);
+    const objetivo = parseValorMonetario(els.objetivo.value);
     const dataStr = els.dataAtualizacao.value;
     const qtdFeitas = parseFloat(els.qtdFeitas.value);
     const diasSemana = parseInt(els.diasSemana.value, 10);
@@ -588,13 +602,16 @@
     els.errorState.textContent = msg;
   }
 
-  [els.objetivo, els.dataAtualizacao, els.qtdFeitas, els.diasSemana].forEach(el => {
+  els.objetivo.addEventListener('input', () => { formatarCampoDinheiro(); calcular(); });
+  [els.dataAtualizacao, els.qtdFeitas, els.diasSemana].forEach(el => {
     el.addEventListener('input', calcular);
   });
 
-  // Preenche a data de hoje por padrão
-  els.dataAtualizacao.value = new Date().toISOString().split('T')[0];
+  // Preenche com D-1: a atualização é sempre do dia anterior
+  const ontem = new Date();
+  ontem.setDate(ontem.getDate() - 1);
+  const yyyy = ontem.getFullYear();
+  const mm = String(ontem.getMonth() + 1).padStart(2, '0');
+  const dd = String(ontem.getDate()).padStart(2, '0');
+  els.dataAtualizacao.value = `${yyyy}-${mm}-${dd}`;
   calcular();
-</script>
-</body>
-</html>
